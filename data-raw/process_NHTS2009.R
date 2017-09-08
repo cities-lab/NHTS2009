@@ -10,16 +10,16 @@ download.file(zip_url, destfile=zip_file, method="libcurl")
 unzip(zip_file, exdir = data_dir)
 
 hh_file <- file.path(data_dir, "Ascii/HHV2PUB.CSV")
-pp_file <- file.path(data_dir, "Ascii/HHV2PUB.CSV")
+pp_file <- file.path(data_dir, "Ascii/PERV2PUB.CSV")
 dd_file <- file.path(data_dir, "Ascii/DAYV2PUB.CSV")
-vv_file <- file.path(data_dir, "Ascii/DAYV2PUB.CSV")
+vv_file <- file.path(data_dir, "Ascii/VEHV2PUB.CSV")
 
 stopifnot(all(map_lgl(c(hh_file, pp_file, dd_file, vv_file), file.exists)))
 
-hh_raw <- read_csv(hh_file)
-pp_raw <- read_csv(pp_file)
-dd_raw <- read_csv(dd_file)
-vv_raw <- read_csv(vv_file)
+hh_raw <- read_csv(hh_file, col_types = cols(HOUSEID=col_character()))
+pp_raw <- read_csv(pp_file, col_types = cols(HOUSEID=col_character()))
+dd_raw <- read_csv(dd_file, col_types = cols(HOUSEID=col_character()))
+vv_raw <- read_csv(vv_file, col_types = cols(HOUSEID=col_character()))
 
 #devtools::use_data(hh_raw)
 #devtools::use_data(pp_raw)
@@ -28,7 +28,7 @@ vv_raw <- read_csv(vv_file)
 
 Hh_df <- hh_raw %>%
   mutate_if(is.factor, as.character) %>%
-  #left_join(poverty_df, by="HhSize") %>%
+  left_join(poverty_df, by=c("HHSIZE")) %>%
   transmute(
     HOUSEID=HOUSEID,
     HTPPOPDN=as.integer(HTPPOPDN),
@@ -136,21 +136,8 @@ Hh_df <- hh_raw %>%
   ) %>%
   filter(FLAG100=="01")
 
-# R_AGE does not exist in pp_raw
-# pp_hh_df <- pp_raw %>%
-#   mutate_if(is.factor, as.character) %>%
-#   group_by(HOUSEID) %>%
-#   summarize(Age65Plus=sum(R_AGE>=65),
-#             Age0to14=sum(R_AGE<14),
-#             DrvAgePop= first(HhSize) - Age0to14
-#             #workers=sum(WORKER=="01"),  #=hh.WRKCOUNT
-#             #drivers=sum(DRIVER=="01")   #=hh.DRVRCNT
-#   )
-
-pp_hh_df <- dd_raw %>%
+pp_hh_df <- pp_raw %>%
   mutate_if(is.factor, as.character) %>%
-  group_by(HOUSEID, PERSONID) %>%
-  summarize(R_AGE=first(R_AGE), HHSIZE=first(HHSIZE)) %>%
   group_by(HOUSEID) %>%
   summarize(Age65Plus=sum(R_AGE>=65),
             Age0to14=sum(R_AGE<14),
@@ -159,11 +146,12 @@ pp_hh_df <- dd_raw %>%
             #drivers=sum(DRIVER=="01")   #=hh.DRVRCNT
   )
 
+
 Hh_df <- Hh_df %>% left_join(pp_hh_df, by="HOUSEID")
 
 vv_df <- vv_raw %>%
   mutate_if(is.factor, as.character) %>%
-  #filter(VEHCOMM=="02") %>%  ## exclude vehicles w/ commercial license, not available in the public VV file
+  filter(VEHCOMM=="02") %>%  ## exclude vehicles w/ commercial license, not available in the public VV file
   mutate(ANNMILES=ifelse(ANNMILES<0, NA, ANNMILES),
          BESTMILE=ifelse(BESTMILE<0, NA, BESTMILE))
 
@@ -178,7 +166,7 @@ Hh_df <- Hh_df %>%
   left_join(hh_vv_df)
 
 dd_df <- dd_raw %>%
-  filter(as.character(TRIPTIME)=="01") %>% #only include those with correct trip time
+  #filter(as.character(TRIPTIME)=="01") %>% #only include those with correct trip time
   filter(TRPMILES >= 0, TRVL_MIN>=0,  as.character(TRIPPURP) != '-9') %>%
   #dplyr::select(HOUSEID, TRIPTIME, TRPMILES, VMT_MILE, TRPTRANS, TRPTRNOS, TRVL_MIN, TRVLCMIN,
   #TRVLHR, TRVLMIN, WAIT_HR, WAIT_MIN, WHYTRP90, WHYTRPSP)
@@ -195,7 +183,8 @@ dd_df <- dd_df %>%
   )
 
 trpmiles.cutoffs <- dd_df %>%
-  left_join(vv %>% dplyr::select(HOUSEID, VEHID, VEHCOMM)) %>%
+  left_join(vv_raw %>% dplyr::transmute(HOUSEID=as.character(HOUSEID), VEHID, VEHCOMM),
+            by=c("HOUSEID", "VEHID")) %>%
   filter(is.na(VEHCOMM) | as.character(VEHCOMM)=="02") %>%
   group_by(mode) %>%
   summarize(cutoff = quantile(TRPMILES, probs=0.99))
@@ -216,7 +205,7 @@ hh.x.mode_dd <- dd_df %>%
 
 #compute %td by mode
 hh.x.mode_dd <- hh.x.mode_dd %>%
-  #filter(td.miles > 0) %>% #not necessary as the minimum td.miles is larger than 0
+  filter(td.miles > 0) %>% #not necessary as the minimum td.miles is larger than 0
   group_by(HOUSEID) %>%
   mutate(td.pct=td.miles/sum(td.miles),
          tt.pct=tt.mins/sum(tt.mins)) %>%
@@ -230,9 +219,9 @@ hh.x.mode_dd <- hh.x.mode_dd %>%
 hh_dd_mode_df <- hh.x.mode_dd %>%
   gather(key="variable", value="value", td.miles:tt.pct) %>%
   unite(col="variable", variable, mode, sep=".") %>%
-  spread(variable, value)
+  spread(variable, value, fill=0)
 
-Hh_df <- Hh_df %>% left_join(hh_dd_mod_df, by="HOUSEID")
+Hh_df <- Hh_df %>% left_join(hh_dd_mode_df, by="HOUSEID")
 
 # # confusing renaming to get sane column names
 # hh_td.miles <- hh.x.mode_dd %>%
@@ -273,4 +262,43 @@ Hh_df <- Hh_df %>%
          tt.mins=ifelse(is.na(tt.mins) | is.null(tt.mins), 0, tt.mins)
   )
 
-devtools::use_data(Hh_df)
+## compute variables derived from other variables
+
+Hh_df <- Hh_df %>%
+  mutate(
+    BESTMILEcap=BESTMILE/HhSize,
+    powBESTMILE=BESTMILE^0.38,
+    AADVMT=BESTMILE/365,
+    AADVMT.int=round(AADVMT, 0),
+    lnBESTMILE=log1p(BESTMILE),
+
+    DVMT.int=round(DVMT, 0),
+    DVMTcap=DVMT/HhSize,
+    powDVMT=DVMT^0.18,
+
+    td.milescap=td.miles/HhSize,
+    lntd.milescap=log(td.milescap),
+
+    VehPerDrvAgePop = Vehicles/DrvAgePop,
+    VehPerDriver = ifelse(Drivers!=0, Vehicles/Drivers, 0),
+    LogIncome = log1p(HHFAMINCVAL),
+
+    ZeroVeh=ifelse(Vehicles==0, 1, 0),
+    ZeroDVMT=ifelse(DVMT==0, 1, 0),
+    ZeroAADVMT=ifelse(AADVMT==0, 1, 0),
+
+    #Tranmilescap=UZAAVRM/UZAPOP,
+    #Fwylnmicap=UZAFWLM/UZAPOP,
+
+    #TranRevMiP1k = 1000 * Tranmilescap,
+    #FwyLaneMiP1k = 1000 * Fwylnmicap,
+
+    #TRPOPDEN=TRPOP/TRAREA,
+    #TRHUDEN=TRHU/TRAREA,
+    #TREMPDEN=TREMP/TRAREA,
+    #TRACTDEN=TRACT/TRAREA,
+    #TRJOBPOP=TREMP/TRPOP,
+    #TRJOBHH=TREMP/TRHU
+  )
+
+devtools::use_data(Hh_df, overwrite=TRUE)
