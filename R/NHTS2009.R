@@ -9,10 +9,10 @@
 #'   \item{Age0to14}{}
 #'   \item{Age65Plus}{}
 #'   \item{ANNMILES}{}
-#'   \item{atd.miles.Auto}{}
-#'   \item{atd.miles.Bike}{}
-#'   \item{atd.miles.Transit}{}
-#'   \item{atd.miles.Walk}{}
+#'   \item{AutoAvgTripDist}{}
+#'   \item{BikeAvgTripDist}{}
+#'   \item{TransitAvgTripDist}{}
+#'   \item{WalkAvgTripDist}{}
 #'   \item{BESTMILE}{}
 #'   \item{BESTMILEcap}{}
 #'   \item{CENSUS_D}{}
@@ -35,40 +35,40 @@
 #'   \item{HTPPOPDN}{}
 #'   \item{LifeCycle}{}
 #'   \item{lnBESTMILE}{}
-#'   \item{lntd.milescap}{}
+#'   \item{lnPMTap}{log of PMT per capita}
 #'   \item{LogIncome}{}
 #'   \item{MSACAT}{}
 #'   \item{MSASIZE}{}
-#'   \item{ntrips}{}
-#'   \item{ntrips.Auto}{}
-#'   \item{ntrips.Bike}{}
-#'   \item{ntrips.Transit}{}
-#'   \item{ntrips.Walk}{}
+#'   \item{Trips}{Total number of trips}
+#'   \item{AutoTrips}{Number of Driving Trips}
+#'   \item{BikeTrips}{Number of Biking Trips}
+#'   \item{TransitTrips}{Number of Transit Trips}
+#'   \item{WalkTrips}{Number of Walking Trips}
 #'   \item{NUMADLT}{}
 #'   \item{powBESTMILE}{}
 #'   \item{powDVMT}{}
 #'   \item{RAIL}{}
 #'   \item{TDAYDATE}{}
-#'   \item{td.miles}{}
-#'   \item{td.miles.Auto}{}
-#'   \item{td.miles.Bike}{}
-#'   \item{td.milescap}{}
-#'   \item{td.miles.Transit}{}
-#'   \item{td.miles.Walk}{}
-#'   \item{td.pct.Auto}{}
-#'   \item{td.pct.Bike}{}
-#'   \item{td.pct.Transit}{}
-#'   \item{td.pct.Walk}{}
+#'   \item{PMT}{Total person miles travelled}
+#'   \item{PMTCap}{Total person miles travelled per capita}
+#'   \item{AutoPMT}{}
+#'   \item{BikePMT}{}
+#'   \item{TransitPMT}{}
+#'   \item{WalkPMT}{}
+#'   \item{AutoPMTPct}{}
+#'   \item{BikePMTPct}{}
+#'   \item{TransitPMTPct}{}
+#'   \item{WalkPMTPct}{}
 #'   \item{TRAVDAY}{}
-#'   \item{tt.mins}{}
-#'   \item{tt.mins.Auto}{}
-#'   \item{tt.mins.Bike}{}
-#'   \item{tt.mins.Transit}{}
-#'   \item{tt.mins.Walk}{}
-#'   \item{tt.pct.Auto}{}
-#'   \item{tt.pct.Bike}{}
-#'   \item{tt.pct.Transit}{}
-#'   \item{tt.pct.Walk}{}
+#'   \item{PTT}{}
+#'   \item{AutoPTT}{}
+#'   \item{BikePTT}{}
+#'   \item{TransitPTT}{}
+#'   \item{WalkPTT}{}
+#'   \item{AutoPTTPct}{}
+#'   \item{BikePTTPct}{}
+#'   \item{TransitPTTPct}{}
+#'   \item{WalkPTTPct}{}
 #'   \item{URBAN}{}
 #'   \item{URBANSIZE}{}
 #'   \item{URBRUR}{}

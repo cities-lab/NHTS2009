@@ -197,53 +197,53 @@ dd_df <- dd_df %>%
 hh.x.mode_dd <- dd_df %>%
   filter(mode != "Other", TRPMILES>=0, TRVL_MIN>=0) %>%
   group_by(HOUSEID, mode) %>%
-  summarize(td.miles=sum(TRPMILES, na.rm=T),
-            tt.mins=sum(TRVL_MIN, na.rm=T),
-            ntrips=n()) %>%
+  summarize(PMT=sum(TRPMILES, na.rm=T),
+            PTT=sum(TRVL_MIN, na.rm=T),
+            Trips=n()) %>%
   ungroup() %>%
-  mutate(atd.miles=td.miles/ntrips)
+  mutate(AvgTripDist=PMT/Trips)
 
 #compute %td by mode
 hh.x.mode_dd <- hh.x.mode_dd %>%
-  filter(td.miles > 0) %>% #not necessary as the minimum td.miles is larger than 0
+  filter(PMT > 0) %>% #not necessary as the minimum PMT is larger than 0
   group_by(HOUSEID) %>%
-  mutate(td.pct=td.miles/sum(td.miles),
-         tt.pct=tt.mins/sum(tt.mins)) %>%
+  mutate(PMTPct=PMT/sum(PMT),
+         PTTPct=PTT/sum(PTT)) %>%
   ungroup()
 
 ## convert from
-# HOUSEID, MODE, td.miles, tt.mins, td.pct, tt.pct
+# HOUSEID, MODE, PMT, PTT, PMTPct, PTTPct
 ## to
-# HOUSEID, td.miles.Auto, tt.mins.Auto, td.pct.Auto, tt.pct.Auto, ...
+# HOUSEID, PMT.Auto, PTT.Auto, PMTPct.Auto, PTTPct.Auto, ...
 
 hh_dd_mode_df <- hh.x.mode_dd %>%
-  gather(key="variable", value="value", td.miles:tt.pct) %>%
-  unite(col="variable", variable, mode, sep=".") %>%
+  gather(key="variable", value="value", PMT:PTTPct) %>%
+  unite(col="variable", mode, variable, sep="") %>%
   spread(variable, value, fill=0)
 
 Hh_df <- Hh_df %>% left_join(hh_dd_mode_df, by="HOUSEID")
 
 # # confusing renaming to get sane column names
-# hh_td.miles <- hh.x.mode_dd %>%
-#   dplyr::select(HOUSEID, value=td.miles, td.miles=mode) %>%
-#   tidyr::spread(key=td.miles, value=value, fill=0.0, sep=".")
+# hh_PMT <- hh.x.mode_dd %>%
+#   dplyr::select(HOUSEID, value=PMT, PMT=mode) %>%
+#   tidyr::spread(key=PMT, value=value, fill=0.0, sep=".")
 #
-# hh_td.pct <- hh.x.mode_dd %>%
-#   dplyr::select(HOUSEID, value=td.pct, tdpct=mode) %>%
+# hh_PMTPct <- hh.x.mode_dd %>%
+#   dplyr::select(HOUSEID, value=PMTPct, tdpct=mode) %>%
 #   tidyr::spread(key=tdpct, value=value, fill=0.0, sep=".")
 #
-# hh_atd.miles <- hh.x.mode_dd %>%
-#   dplyr::select(HOUSEID, value=atd.miles, atd.miles=mode) %>%
-#   tidyr::spread(key=atd.miles, value=value, fill=0.0, sep=".")
+# hh_AvgTripDist <- hh.x.mode_dd %>%
+#   dplyr::select(HOUSEID, value=AvgTripDist, AvgTripDist=mode) %>%
+#   tidyr::spread(key=AvgTripDist, value=value, fill=0.0, sep=".")
 #
-# hh_ntrips <- hh.x.mode_dd %>%
-#   dplyr::select(HOUSEID, value=ntrips, ntrips=mode) %>%
-#   tidyr::spread(key=ntrips, value=value, fill=0.0, sep=".")
+# hh_Trips <- hh.x.mode_dd %>%
+#   dplyr::select(HOUSEID, value=Trips, Trips=mode) %>%
+#   tidyr::spread(key=Trips, value=value, fill=0.0, sep=".")
 #
-# Hh_df %<>% left_join(hh_td.miles, by="HOUSEID")
-# Hh_df %<>% left_join(hh_td.pct, by="HOUSEID")
-# Hh_df %<>% left_join(hh_atd.miles, by="HOUSEID")
-# Hh_df %<>% left_join(hh_ntrips, by="HOUSEID")
+# Hh_df %<>% left_join(hh_PMT, by="HOUSEID")
+# Hh_df %<>% left_join(hh_PMTPct, by="HOUSEID")
+# Hh_df %<>% left_join(hh_AvgTripDist, by="HOUSEID")
+# Hh_df %<>% left_join(hh_Trips, by="HOUSEID")
 
 # get DVMT from dd
 dd_hh_df <- dd_df %>%
@@ -251,15 +251,15 @@ dd_hh_df <- dd_df %>%
   filter(mode != "Other") %>%
   group_by(HOUSEID) %>%
   summarize(DVMT=sum(VMT_MILE, na.rm=T),
-            td.miles=sum(TRPMILES, na.rm=T),
-            tt.mins=sum(TRVL_MIN, na.rm=T),
-            ntrips=n())
+            PMT=sum(TRPMILES, na.rm=T),
+            PTT=sum(TRVL_MIN, na.rm=T),
+            Trips=n())
 
 Hh_df <- Hh_df %>%
   left_join(dd_hh_df, by="HOUSEID") %>%
   mutate(DVMT=ifelse(is.na(DVMT) | is.null(DVMT), 0, DVMT),
-         td.miles=ifelse(is.na(td.miles) | is.null(td.miles), 0, td.miles),
-         tt.mins=ifelse(is.na(tt.mins) | is.null(tt.mins), 0, tt.mins)
+         PMT=ifelse(is.na(PMT) | is.null(PMT), 0, PMT),
+         PTT=ifelse(is.na(PTT) | is.null(PTT), 0, PTT)
   )
 
 ## compute variables derived from other variables
@@ -276,8 +276,8 @@ Hh_df <- Hh_df %>%
     DVMTcap=DVMT/HhSize,
     powDVMT=DVMT^0.18,
 
-    td.milescap=td.miles/HhSize,
-    lntd.milescap=log(td.milescap),
+    PMTcap=PMT/HhSize,
+    lnPMTcap=log(PMTcap),
 
     VehPerDrvAgePop = Vehicles/DrvAgePop,
     VehPerDriver = ifelse(Drivers!=0, Vehicles/Drivers, 0),
@@ -285,7 +285,7 @@ Hh_df <- Hh_df %>%
 
     ZeroVeh=ifelse(Vehicles==0, 1, 0),
     ZeroDVMT=ifelse(DVMT==0, 1, 0),
-    ZeroAADVMT=ifelse(AADVMT==0, 1, 0),
+    ZeroAADVMT=ifelse(AADVMT==0, 1, 0)
 
     #Tranmilescap=UZAAVRM/UZAPOP,
     #Fwylnmicap=UZAFWLM/UZAPOP,
